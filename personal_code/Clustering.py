@@ -44,15 +44,20 @@ def getLeaves(ncoord):
         for cluster in leaves:
             if len(leaves[i]) != 1:
                 nb_points_clean += len(cluster)
-        # ncoord2 = np.zeros((nb_points_clean, 3))
-        ncoord2 = np.zeros((nb_points_clean, 4))
-        indice = 0
-        for i in range(len(leaves)):
-            ncoord2[indice:indice + len(leaves[i]), :-1] = leaves[i]
-            ncoord2[indice:indice + len(leaves[i]), -1] = np.full((len(leaves[i])), i)
-            indice += len(leaves[i])
+        if nb_points_clean != 0:
+            # ncoord2 = np.zeros((nb_points_clean, 3))
+            ncoord2 = np.zeros((nb_points_clean, 4))
+            indice = 0
+            for i in range(len(leaves)):
+                ncoord2[indice:indice + len(leaves[i]), :-1] = leaves[i]
+                ncoord2[indice:indice + len(leaves[i]), -1] = np.full((len(leaves[i])), i)
+                indice += len(leaves[i])
 
-        return leaves, nb_classes, pred
+            return leaves, nb_classes, pred
+        else:
+            return [], nb_classes, []
+    else:
+        return [], nb_classes, []
 
 
 def removeStem(leaves):
@@ -201,31 +206,31 @@ def getCenterCluster(cluster):  # Need cluster before any transformation (cluste
     return x, y, z
 
 
-def uniteClusters(clusters, planNormal, nb_classes):
-    centers = np.zeros((nb_classes, 3))
-    for i in range(len(clusters)):
-        x, y, z = getCenterCluster(clusters[i])
-        centers[i, :] = [x, y, z]
-
-    # subfig = go.Scatter3d(
-    #     x=centers[:, 0],
-    #     y=centers[:, 1],
-    #     z=centers[:, 2],
-    #     mode='markers',
-    #     marker=dict(
-    #         size=2,
-    #         # color=pred,
-    #         # color=ncoord2[:, 3],
-    #         # colorscale='Viridis',
-    #         opacity=0.8
-    #     )
-    # )
-    # fig = make_subplots(
-    #     rows=1, cols=1,
-    #     specs=[[{'type': 'surface'}]])
-    # fig.add_trace(subfig)
-    # fig.update_layout(scene_aspectmode='data', )
-    # fig.show()
+# def uniteClusters(clusters, planNormal, nb_classes):
+#     centers = np.zeros((nb_classes, 3))
+#     for i in range(len(clusters)):
+#         x, y, z = getCenterCluster(clusters[i])
+#         centers[i, :] = [x, y, z]
+#
+#     # subfig = go.Scatter3d(
+#     #     x=centers[:, 0],
+#     #     y=centers[:, 1],
+#     #     z=centers[:, 2],
+#     #     mode='markers',
+#     #     marker=dict(
+#     #         size=2,
+#     #         # color=pred,
+#     #         # color=ncoord2[:, 3],
+#     #         # colorscale='Viridis',
+#     #         opacity=0.8
+#     #     )
+#     # )
+#     # fig = make_subplots(
+#     #     rows=1, cols=1,
+#     #     specs=[[{'type': 'surface'}]])
+#     # fig.add_trace(subfig)
+#     # fig.update_layout(scene_aspectmode='data', )
+#     # fig.show()
 
 
 def getHiddenLeafCharacteristics(leaf):
@@ -351,192 +356,202 @@ def plotPlant(coord, label):
     fig.show()
 
 
+def getNumpyArray(leaves):
+    ncoord = leaves[0]
+    ncoord = np.append(ncoord, np.ones((len(leaves[0]), 1)) * 0, axis=1)
+    for i in range(1, len(leaves)):
+        if len(leaves[i]) > 1:
+            temp = np.append(leaves[i], np.ones((len(leaves[i]), 1)) * i, axis=1)
+            ncoord = np.append(ncoord, temp, axis=0)
+    return ncoord
+
+
 # Just junk codes to test the functions
-for blabla in range(46, 48):
-    # en t (ou blabla) = 38, le centre de gravité est loin du centre donc y a pas de séparation de feuille :'(
-    # 18
-    # f = open("basil_coordinates2.txt", "r")
-    ncoord = readData(blabla)
-
-    plantHeight = getHeight(ncoord)
-
-    length, width, height, trueLength = 1280, 720, 50, 50
-
-    dp = trueLength/length  # the length of a pixel if it hits the ground
-
-    # fig = plt.figure()
-    # ax = Axes3D(fig)
-    # ax.scatter(ncoord[:,0], ncoord[:,1], ncoord[:,2], s=300)
-    # ax.view_init(azim=200)
-    # plt.show()
-
-    # getLeaves(ncoord)
-
-    leaves, nb_classes, pred = getLeaves(ncoord)
-
-    plotPlant(ncoord, pred)
-    if nb_classes > 1:
-        un, deux = getUpperLeaves(leaves)
-        leaves = separateUnitedLeaves(leaves)
-        ncoord2 = np.copy(leaves[0])
-        ncoord2 = np.append(ncoord2, np.ones((len(leaves[0]), 1))*0, axis=1)
-        for j in range(1, len(leaves)):
-            if len(leaves[j]) != 1:
-                temp = np.copy(leaves[j])
-                # Il faut rajouter une colonne qui est le label
-                temp = np.append(temp, np.ones((len(leaves[j]), 1))*j, axis=1)
-                ncoord2 = np.append(ncoord2, temp, axis=0)
-        plotPlant(ncoord2[:, :3], ncoord2[:, 3])
-
-
-    # model = DBSCAN(eps=4*dp, min_samples=15, n_jobs=4)
-    # model.fit_predict(ncoord)
-    # pred = model.fit_predict(ncoord)
-    #
-    # nb_classes = np.max(pred) + 1  # The label are going from 0 to n-1, so n is the number of label and is the max
-    # # value possible for a label
-    # if nb_classes > 1:
-    #     leaves = [[]]*nb_classes
-    #     li = []
-    #     compteur = 0
-    #     for i in range(len(ncoord)):
-    #         if pred[i] != -1:
-    #             if len(leaves[pred[i]]) == 0:
-    #                 leaves[pred[i]] = [ncoord[i, :]]
-    #             else:
-    #                 leaves[pred[i]].append(ncoord[i, :])
-    #
-    #     centers = list()
-    #     for i in range(nb_classes):
-    #         leaves[i] = np.array(leaves[i])
-    #         centers.append(np.abs(np.sum(leaves[i][:, 0]) / len(leaves[i][:, 0]) + np.sum(leaves[i][:, 1]) / len(leaves[i][:, 1])))
-    #
-    #     indexOfUpperLeaves = centers.index(min(centers))
-    #     # Another technique probably better is to count the number of point with x positive and with x negative, if it is the same, it's ok (idem with y)
-    #
-    #     # uniteClusters(leaves, 1, nb_classes)
-    #
-    #     leaves2 = []
-    #     for i in range(len(leaves)):  # delete cluster without enough point
-    #         # if len(leaves[i]) > 0.01 * len(coord):
-    #         #     leaves2.append(leaves[i])
-    #         # if len(leaves[i]) < 0.01 * len(coord):
-    #         if len(leaves[i]) < 100:
-    #             leaves[i] = np.array([1])  # Just a definite array to check whether we keep the cluster or not
-    #     leaves2 = leaves
-    #     nb_points_clean = 0
-    #     for cluster in leaves2:
-    #         if len(cluster) != 1:
-    #             nb_points_clean += len(cluster)
-    #     # ncoord2 = np.zeros((nb_points_clean, 3))
-    #     ncoord2 = np.zeros((nb_points_clean, 4))
-    #     leaves2 = separateUnitedLeaves(leaves2)
-    #     indice = 0
-    #     for i in range(len(leaves2)):
-    #         if len(leaves2[i]) != 1:
-    #             ncoord2[indice:indice+len(leaves2[i]), :-1] = leaves2[i]
-    #             ncoord2[indice:indice + len(leaves2[i]), -1] = np.full((len(leaves2[i])), i)
-    #             indice += len(leaves2[i])
-    #
-    #     un, deux = getUpperLeaves(leaves2)
-    #
-    #     # length, width, leafPCA, angle2, zNode = getLengthWidth(leaves2[int(un)])
-    #
-    #     # xmean, ymean, _ = getCenterCluster(leaves2[int(un)])
-    #     # planNormal = [xmean, ymean, 0]
-    #     # angle8, zNode8, _, _ = getHiddenLeafCharacteristics(leaves2[8])
-    #     # angle0, zNode0, _, _ = getHiddenLeafCharacteristics(leaves2[0])
-    #     # getHiddenLeafCharacteristics(leaves2[2])
-    #
-    #     subfig = go.Scatter3d(
-    #         # x=leaves[2][:, 0],
-    #         # y=leaves[2][:, 1],
-    #         # z=leaves[2][:, 2],
-    #         # x=ncoord[:, 0],
-    #         # y=ncoord[:, 1],
-    #         # z=ncoord[:, 2],
-    #         x=ncoord2[:, 0],
-    #         y=ncoord2[:, 1],
-    #         z=ncoord2[:, 2],
-    #         mode='markers',
-    #         marker=dict(
-    #             size=2,
-    #             # color=pred,
-    #             color=ncoord2[:, 3],
-    #             colorscale='Viridis',
-    #             opacity=0.8
-    #         )
-    #     )
-    #     fig = make_subplots(
-    #         rows=1, cols=1,
-    #         specs=[[{'type': 'surface'}]])
-    #     fig.add_trace(subfig)
-    #     fig.update_layout(scene_aspectmode='data', )
-    #     fig.show()
-    #
-    #     # subfig = go.Scatter3d(
-    #     #     # x=leaves[2][:, 0],
-    #     #     # y=leaves[2][:, 1],
-    #     #     # z=leaves[2][:, 2],
-    #     #     x=ncoord[:, 0],
-    #     #     y=ncoord[:, 1],
-    #     #     z=ncoord[:, 2],
-    #     #     # x=ncoord2[:, 0],
-    #     #     # y=ncoord2[:, 1],
-    #     #     # z=ncoord2[:, 2],
-    #     #     mode='markers',
-    #     #     marker=dict(
-    #     #         size=2,
-    #     #         color=pred,
-    #     #         # color=ncoord2[:, 3],
-    #     #         colorscale='Viridis',
-    #     #         opacity=0.8
-    #     #     )
-    #     # )
-    #     # fig = make_subplots(
-    #     #     rows=1, cols=1,
-    #     #     specs=[[{'type': 'surface'}]])
-    #     # fig.add_trace(subfig)
-    #     # fig.update_layout(scene_aspectmode='data', )
-    #     # fig.show()
-    #
-    #     # popo = 2  # 0 feuille partielle, 8 feuille partielle, 2 lune
-    #     # tempLeaf = np.copy(leaves2[popo])
-    #     # distFromCenter = np.sqrt(tempLeaf[:, 0] ** 2 + tempLeaf[:, 1] ** 2)
-    #     # tempLeaf = np.append(np.arange(len(tempLeaf))[np.newaxis].T, tempLeaf, axis=1)
-    #     # tempLeaf = np.append(tempLeaf, distFromCenter[np.newaxis].T, axis=1)
-    #     # tempLeaf = tempLeaf[tempLeaf[:, 4].argsort()]
-    #     # templist = np.zeros(len(leaves2[popo]))
-    #     # templist[int(tempLeaf[-1, 0])] = 1
-    #     # subfig = go.Scatter3d(
-    #     #     # x=leafPCA[:, 0],
-    #     #     # y=leafPCA[:, 1],
-    #     #     # z=leafPCA[:, 2],
-    #     #     x=leaves2[popo][:, 0],
-    #     #     y=leaves2[popo][:, 1],
-    #     #     z=leaves2[popo][:, 2],
-    #     #     mode='markers',
-    #     #     marker=dict(
-    #     #         size=2,
-    #     #         # color=pred,
-    #     #         # color=ncoord2[:, 3],
-    #     #         color=templist,
-    #     #         colorscale='Viridis',
-    #     #         opacity=0.8
-    #     #     )
-    #     # )
-    #     # fig = make_subplots(
-    #     #     rows=1, cols=1,
-    #     #     specs=[[{'type': 'surface'}]])
-    #     # fig.add_trace(subfig)
-    #     # fig.update_layout(scene_aspectmode='data', )
-    #     # fig.show()
-    #
-    #     # fig = plt.figure()
-    #     # ax = Axes3D(fig)
-    #     # ax.scatter(ncoord[:,0], ncoord[:,1], ncoord[:,2], c=model.labels_, s=300)
-    #     # ax.view_init(azim=200)
-    #     # plt.show()
-    #
-    #     print("number of cluster found: {}".format(len(set(model.labels_))))
-    #     print('cluster for each point: ', model.labels_)
+# for blabla in range(46, 48):
+#     # en t (ou blabla) = 38, le centre de gravité est loin du centre donc y a pas de séparation de feuille :'(
+#     # 18
+#     # f = open("basil_coordinates2.txt", "r")
+#     ncoord = readData(blabla)
+#
+#     plantHeight = getHeight(ncoord)
+#
+#     length, width, height, trueLength = 1280, 720, 50, 50
+#
+#     dp = trueLength/length  # the length of a pixel if it hits the ground
+#
+#     # fig = plt.figure()
+#     # ax = Axes3D(fig)
+#     # ax.scatter(ncoord[:,0], ncoord[:,1], ncoord[:,2], s=300)
+#     # ax.view_init(azim=200)
+#     # plt.show()
+#
+#     # getLeaves(ncoord)
+#
+#     leaves, nb_classes, pred = getLeaves(ncoord)
+#
+#     plotPlant(ncoord, pred)
+#     if nb_classes > 1:
+#         un, deux = getUpperLeaves(leaves)
+#         leaves = separateUnitedLeaves(leaves)
+#         ncoord2 = np.copy(leaves[0])
+#         ncoord2 = np.append(ncoord2, np.ones((len(leaves[0]), 1))*0, axis=1)
+#         for j in range(1, len(leaves)):
+#             if len(leaves[j]) != 1:
+#                 temp = np.copy(leaves[j])
+#                 # Il faut rajouter une colonne qui est le label
+#                 temp = np.append(temp, np.ones((len(leaves[j]), 1))*j, axis=1)
+#                 ncoord2 = np.append(ncoord2, temp, axis=0)
+#         plotPlant(ncoord2[:, :3], ncoord2[:, 3])
+#
+#
+#     # model = DBSCAN(eps=4*dp, min_samples=15, n_jobs=4)
+#     # model.fit_predict(ncoord)
+#     # pred = model.fit_predict(ncoord)
+#     #
+#     # nb_classes = np.max(pred) + 1  # The label are going from 0 to n-1, so n is the number of label and is the max
+#     # # value possible for a label
+#     # if nb_classes > 1:
+#     #     leaves = [[]]*nb_classes
+#     #     li = []
+#     #     compteur = 0
+#     #     for i in range(len(ncoord)):
+#     #         if pred[i] != -1:
+#     #             if len(leaves[pred[i]]) == 0:
+#     #                 leaves[pred[i]] = [ncoord[i, :]]
+#     #             else:
+#     #                 leaves[pred[i]].append(ncoord[i, :])
+#     #
+#     #     centers = list()
+#     #     for i in range(nb_classes):
+#     #         leaves[i] = np.array(leaves[i])
+#     #         centers.append(np.abs(np.sum(leaves[i][:, 0]) / len(leaves[i][:, 0]) + np.sum(leaves[i][:, 1]) / len(leaves[i][:, 1])))
+#     #
+#     #     indexOfUpperLeaves = centers.index(min(centers))
+#     #     # Another technique probably better is to count the number of point with x positive and with x negative, if it is the same, it's ok (idem with y)
+#     #
+#     #     # uniteClusters(leaves, 1, nb_classes)
+#     #
+#     #     leaves2 = []
+#     #     for i in range(len(leaves)):  # delete cluster without enough point
+#     #         # if len(leaves[i]) > 0.01 * len(coord):
+#     #         #     leaves2.append(leaves[i])
+#     #         # if len(leaves[i]) < 0.01 * len(coord):
+#     #         if len(leaves[i]) < 100:
+#     #             leaves[i] = np.array([1])  # Just a definite array to check whether we keep the cluster or not
+#     #     leaves2 = leaves
+#     #     nb_points_clean = 0
+#     #     for cluster in leaves2:
+#     #         if len(cluster) != 1:
+#     #             nb_points_clean += len(cluster)
+#     #     # ncoord2 = np.zeros((nb_points_clean, 3))
+#     #     ncoord2 = np.zeros((nb_points_clean, 4))
+#     #     leaves2 = separateUnitedLeaves(leaves2)
+#     #     indice = 0
+#     #     for i in range(len(leaves2)):
+#     #         if len(leaves2[i]) != 1:
+#     #             ncoord2[indice:indice+len(leaves2[i]), :-1] = leaves2[i]
+#     #             ncoord2[indice:indice + len(leaves2[i]), -1] = np.full((len(leaves2[i])), i)
+#     #             indice += len(leaves2[i])
+#     #
+#     #     un, deux = getUpperLeaves(leaves2)
+#     #
+#     #     # length, width, leafPCA, angle2, zNode = getLengthWidth(leaves2[int(un)])
+#     #
+#     #     # xmean, ymean, _ = getCenterCluster(leaves2[int(un)])
+#     #     # planNormal = [xmean, ymean, 0]
+#     #     # angle8, zNode8, _, _ = getHiddenLeafCharacteristics(leaves2[8])
+#     #     # angle0, zNode0, _, _ = getHiddenLeafCharacteristics(leaves2[0])
+#     #     # getHiddenLeafCharacteristics(leaves2[2])
+#     #
+#     #     subfig = go.Scatter3d(
+#     #         # x=leaves[2][:, 0],
+#     #         # y=leaves[2][:, 1],
+#     #         # z=leaves[2][:, 2],
+#     #         # x=ncoord[:, 0],
+#     #         # y=ncoord[:, 1],
+#     #         # z=ncoord[:, 2],
+#     #         x=ncoord2[:, 0],
+#     #         y=ncoord2[:, 1],
+#     #         z=ncoord2[:, 2],
+#     #         mode='markers',
+#     #         marker=dict(
+#     #             size=2,
+#     #             # color=pred,
+#     #             color=ncoord2[:, 3],
+#     #             colorscale='Viridis',
+#     #             opacity=0.8
+#     #         )
+#     #     )
+#     #     fig = make_subplots(
+#     #         rows=1, cols=1,
+#     #         specs=[[{'type': 'surface'}]])
+#     #     fig.add_trace(subfig)
+#     #     fig.update_layout(scene_aspectmode='data', )
+#     #     fig.show()
+#     #
+#     #     # subfig = go.Scatter3d(
+#     #     #     # x=leaves[2][:, 0],
+#     #     #     # y=leaves[2][:, 1],
+#     #     #     # z=leaves[2][:, 2],
+#     #     #     x=ncoord[:, 0],
+#     #     #     y=ncoord[:, 1],
+#     #     #     z=ncoord[:, 2],
+#     #     #     # x=ncoord2[:, 0],
+#     #     #     # y=ncoord2[:, 1],
+#     #     #     # z=ncoord2[:, 2],
+#     #     #     mode='markers',
+#     #     #     marker=dict(
+#     #     #         size=2,
+#     #     #         color=pred,
+#     #     #         # color=ncoord2[:, 3],
+#     #     #         colorscale='Viridis',
+#     #     #         opacity=0.8
+#     #     #     )
+#     #     # )
+#     #     # fig = make_subplots(
+#     #     #     rows=1, cols=1,
+#     #     #     specs=[[{'type': 'surface'}]])
+#     #     # fig.add_trace(subfig)
+#     #     # fig.update_layout(scene_aspectmode='data', )
+#     #     # fig.show()
+#     #
+#     #     # popo = 2  # 0 feuille partielle, 8 feuille partielle, 2 lune
+#     #     # tempLeaf = np.copy(leaves2[popo])
+#     #     # distFromCenter = np.sqrt(tempLeaf[:, 0] ** 2 + tempLeaf[:, 1] ** 2)
+#     #     # tempLeaf = np.append(np.arange(len(tempLeaf))[np.newaxis].T, tempLeaf, axis=1)
+#     #     # tempLeaf = np.append(tempLeaf, distFromCenter[np.newaxis].T, axis=1)
+#     #     # tempLeaf = tempLeaf[tempLeaf[:, 4].argsort()]
+#     #     # templist = np.zeros(len(leaves2[popo]))
+#     #     # templist[int(tempLeaf[-1, 0])] = 1
+#     #     # subfig = go.Scatter3d(
+#     #     #     # x=leafPCA[:, 0],
+#     #     #     # y=leafPCA[:, 1],
+#     #     #     # z=leafPCA[:, 2],
+#     #     #     x=leaves2[popo][:, 0],
+#     #     #     y=leaves2[popo][:, 1],
+#     #     #     z=leaves2[popo][:, 2],
+#     #     #     mode='markers',
+#     #     #     marker=dict(
+#     #     #         size=2,
+#     #     #         # color=pred,
+#     #     #         # color=ncoord2[:, 3],
+#     #     #         color=templist,
+#     #     #         colorscale='Viridis',
+#     #     #         opacity=0.8
+#     #     #     )
+#     #     # )
+#     #     # fig = make_subplots(
+#     #     #     rows=1, cols=1,
+#     #     #     specs=[[{'type': 'surface'}]])
+#     #     # fig.add_trace(subfig)
+#     #     # fig.update_layout(scene_aspectmode='data', )
+#     #     # fig.show()
+#     #
+#     #     # fig = plt.figure()
+#     #     # ax = Axes3D(fig)
+#     #     # ax.scatter(ncoord[:,0], ncoord[:,1], ncoord[:,2], c=model.labels_, s=300)
+#     #     # ax.view_init(azim=200)
+#     #     # plt.show()
+#     #
+#     #     print("number of cluster found: {}".format(len(set(model.labels_))))
+#     #     print('cluster for each point: ', model.labels_)
