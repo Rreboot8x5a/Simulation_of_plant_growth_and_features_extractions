@@ -5,7 +5,6 @@ sys.path.append("../tutorial/examples/python")
 from vtk_tools import *
 from vtk_plot import *
 
-import time
 import numpy as np
 import vtk
 import matplotlib.pyplot as plt
@@ -20,13 +19,13 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 """ 
-VTK Plot, by Daniel Leitner (refurbished 06/2020) 
-
-to make interactive vtk plot of root systems and soil grids
+A code mainly based on the script VTK_plot from CPlantBox.
+The purpose of this script is to be able to plot plant using VTK by adding leaves on the model.
+Moreover, it simulates the nadir camera view and retrieve the coordinates of the viewed points. 
 """
 
 
-def plot_plant(pd, p_name, win_title = "", render = True):
+def plot_plant(pd, p_name, win_title="", render=True, plantType="basil"):
     """ plots the plant system 
     @param pd         the polydata representing the plant system (lines, or polylines)
     @param p_name     parameter name of the data to be visualized
@@ -34,36 +33,11 @@ def plot_plant(pd, p_name, win_title = "", render = True):
     @param render     render in a new interactive window (default = True)
     @return a tuple of a vtkActor and the corresponding color bar vtkScalarBarActor
     """
-    poly = pd.getPolylines()
-    utile = pd.getPolylines(4)
-    if True:
-        utile2 = pd.getPolylines(3)
-    organ = pd.getOrgans()
-    organ2 = pd.getOrgans(4)
-    # param = organ2[1].getParameter('length')
-    identity = organ2[1].getId()
-    nods = np.array([np.array(s) for s in pd.getNodes()])
-    # feuille = []
-    #
-    # for i in range(len(organ)):
-    #     if organ[i].getParameter('type') == 4:  # Only doing it if the organ is a leaf
-    #         for j in range(len(poly[i])-1):
-    #             reps = []
-    #             p1 = poly[i][j]
-    #             p2 = poly[i][j+1]
-    #             # v1 = [0, 0, 0]
-    #             # v1[0] = p2.x - p1.x
-    #             # v1[1] = p2.y - p1.y
-    #             # v1[2] = p2.z - p1.z
-    #             # x = Symbol('x')
-    #             # y = Symbol('y')
-    #             # z = Symbol('z')
-    #             # rep = nsolve((x**2 + y ** 2 - 4, (x - p2.x) * v1[0] + (y - p2.y) * v1[1], z - p2.z), (x, y, z), (p2.x, p2.y, p2.z))
-    #             x1 = rand.uniform(p1.x, p2.x)
-    #             y1 = rand.uniform(p1.y, p2.y)
-    #             z1 = rand.uniform(p1.z, p2.z)
-    #             reps.append([x1, y1, z1])
-    #         feuille.append(reps)
+    leafLines = pd.getPolylines(4)  # The plant is constitute of multiple lines, the parameter "4" allow to retrieve
+    # only the lines coming from leaf organs
+    if plantType == "arabidopsis":
+        rosetteLines = pd.getPolylines(3)  # If the arabidopsis is generated, we need the stem lines because one subType
+        # of stem is a trick to create more leaves
 
     if isinstance(pd, pb.RootSystem):
         pd = segs_to_polydata(pd, 1.)
@@ -77,7 +51,6 @@ def plot_plant(pd, p_name, win_title = "", render = True):
     if win_title == "":
         win_title = p_name
 
-    lines = pd.GetLines()
     pd.GetPointData().SetActiveScalars("radius")  # for the the filter
     tubeFilter = vtk.vtkTubeFilter()
     tubeFilter.SetInputData(pd)
@@ -86,82 +59,19 @@ def plot_plant(pd, p_name, win_title = "", render = True):
     tubeFilter.SetCapping(True)
     tubeFilter.Update()
 
-    print('réussi!')
+    leaves = vtk.vtkPolyData()
+    # leaves = create_leaf(leafLines)
+    leaves = create_leaves(leafLines)
 
-    # zizi est un vtk object, mais quoi ?
-    # bubu = list()
-    # # blob = zizi.GetNumberOfCells()
-    # for i in range(zizi.GetNumberOfCells()):
-    #     bubu.append(zizi.GetCellType(i))
-    # pipi = zizi.GetPolys()
-    # baba = list()
-    # for i in range(len(bubu)):
-    #     if bubu[i] == 5:
-    #         baba.append(i)
-
-    print('Commentaires pour créer des STL, à nettoyer en fin de projet si inutile.')
-
-    # filename = "test.stl"
-    #
-    # # Write the stl file to disk
-    # stlWriter = vtk.vtkSTLWriter()
-    # stlWriter.SetFileName(filename)
-    # stlWriter.SetInputConnection(tubeFilter.GetOutputPort())
-    # stlWriter.Write()
-    #
-    # # Read and display for verification
-    # reader = vtk.vtkSTLReader()
-    # reader.SetFileName(filename)
-    #
-    # mapper = vtk.vtkPolyDataMapper()
-    # if vtk.VTK_MAJOR_VERSION <= 5:
-    #     mapper.SetInput(reader.GetOutput())
-    # else:
-    #     mapper.SetInputConnection(reader.GetOutputPort())
-    #
-    # actor = vtk.vtkActor()
-    # actor.SetMapper(mapper)
-    #
-    # # Create a rendering window and renderer
-    # ren = vtk.vtkRenderer()
-    # renWin = vtk.vtkRenderWindow()
-    # renWin.AddRenderer(ren)
-    #
-    # # Create a renderwindowinteractor
-    # iren = vtk.vtkRenderWindowInteractor()
-    # iren.SetRenderWindow(renWin)
-    #
-    # # Assign actor to the renderer
-    # ren.AddActor(actor)
-    #
-    # # Enable user interface interactor
-    # iren.Initialize()
-    # renWin.Render()
-    # iren.Start()
-
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(tubeFilter.GetOutputPort())
-    mapper.Update()
-    mapper.ScalarVisibilityOn()
-    mapper.SetScalarModeToUseCellFieldData()  # maybe because radius is active scalar in point data?
-    mapper.SetArrayName(p_name)
-    mapper.SelectColorArray(p_name)
-    mapper.UseLookupTableScalarRangeOn()
-    plantActor = vtk.vtkActor()
-    plantActor.SetMapper(mapper)
-
-    popo = vtk.vtkPolyData()
-    # popo = create_leaf(utile)
-    popo = create_basil_leaf(utile)
-
-    appendFilter = vtk.vtkAppendPolyData()
-    appendFilter.AddInputData(popo)
-    if True:  # This is teh arabidopsis
-        rosette = vtk.vtkPolyData()
-        rosette = create_rosette(utile2)
+    appendFilter = vtk.vtkAppendPolyData()  # The append filter allows to unite multiple sets of polygonal data
+    appendFilter.AddInputData(leaves)  # The leaves are added to the append filter
+    if plantType == "arabidopsis":  # This is teh arabidopsis
+        rosette = create_rosette(rosetteLines)
         appendFilter.AddInputData(rosette)
-    appendFilter.AddInputData(tubeFilter.GetOutput())
+    appendFilter.AddInputData(tubeFilter.GetOutput())  # The stems and the roots are added to the append filter
     appendFilter.Update()
+
+    # Just a copy paste from the orginal VTK_plot script
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputConnection(appendFilter.GetOutputPort())
     mapper.Update()
@@ -173,74 +83,21 @@ def plot_plant(pd, p_name, win_title = "", render = True):
     plantActor = vtk.vtkActor()
     plantActor.SetMapper(mapper)
 
-    quequecest = appendFilter.GetOutput()
-
-    # transformFilter.GetOutput()
-    # mapper2 = vtk.vtkPolyDataMapper()
-    # mapper2.SetInputConnection(transformFilter.GetOutputPort())
-    # mapper2.Update()
-    # mapper2.ScalarVisibilityOn()
-    # mapper2.SetScalarModeToUseCellFieldData()  # maybe because radius is active scalar in point data?
-    # mapper2.SetArrayName(p_name)
-    # mapper2.SelectColorArray(p_name)
-    # mapper2.UseLookupTableScalarRangeOn()
-    # yolo = vtk.vtkActor()
-    # yolo.SetMapper(mapper2)
-
-    p0 = [0, -1, 0]
-    p1 = [10, -1, 0]
-    p2 = [10, 1, 0]
-    p3 = [0, 1, 0]
-    points2 = vtk.vtkPoints()
-    points2.InsertNextPoint(p0)
-    points2.InsertNextPoint(p1)
-    points2.InsertNextPoint(p2)
-    points2.InsertNextPoint(p3)
-
-    # Create the polygon
-    polygon2 = vtk.vtkPolygon()
-    polygon2.GetPointIds().SetNumberOfIds(4)  # make a quad
-    polygon2.GetPointIds().SetId(0, 0)
-    polygon2.GetPointIds().SetId(1, 1)
-    polygon2.GetPointIds().SetId(2, 2)
-    polygon2.GetPointIds().SetId(3, 3)
-
-    # Add the polygon to a list of polygons
-    polygons2 = vtk.vtkCellArray()
-    polygons2.InsertNextCell(polygon2)
-
-    # Create a PolyData
-    polygonPolyData2 = vtk.vtkPolyData()
-    polygonPolyData2.SetPoints(points2)
-    polygonPolyData2.SetPolys(polygons2)
-
-    # transformFilter.GetOutput()
-
-    mapper3 = vtk.vtkPolyDataMapper()
-    mapper3.SetInputData(polygonPolyData2)
-
-    papa = vtk.vtkActor()
-    papa.SetMapper(mapper3)
-
     listActor = list()
-    listActor.append(plantActor)
-    # listActor.append(yolo)
-    # listActor.append(papa)
-    # listActor.append(surfActor)
-    # listActor.append(actor)
-    # listActor.append(bspTreeActor)
+    listActor.append(plantActor)  # You can add another actor to the list if you want another data to be plotted
 
     lut = create_lookup_table()  # 24
     scalar_bar = create_scalar_bar(lut, pd, p_name)  # vtkScalarBarActor
     mapper.SetLookupTable(lut)
 
     if render:
-        # render_window(plantActor, win_title, scalar_bar, pd.GetBounds()).Start()
         render_window(listActor, win_title, scalar_bar, pd.GetBounds()).Start()
     return plantActor, scalar_bar
 
 
 def intersection(surfaces, ray):
+    # Mainly based on "https://lorensen.github.io/VTKExamples/site/Python/GeometricObjects/PolygonIntersection/"
+    # tutorial, adapted because ModifiedBSPTree is used instead of a set of polygons.
     p1 = ray[0]
     p2 = ray[1]
     tolerance = 0.001
@@ -259,11 +116,13 @@ def intersection(surfaces, ray):
             # bestID = i
             bestT = t
             bestX = x
-
     return bestID, bestT, bestX, atLeastOne
 
 
 def get_rays(length, width, height, trueLength):
+    # The function only return the intersection between the rays and the ground (xy plan)
+    # Because we state the camera is in position (0, 0, z), we have enough data to retrieve ray equation
+    # (though it is not needed, we only need 2 points of the ray for the VTK function)
     rays = []
     centerOfEverything = [0, 0, height]
     trueWidth = trueLength/length * width
@@ -280,104 +139,112 @@ def get_rays(length, width, height, trueLength):
     return rays
 
 
-def create_leaf(utile):
+def camera_view(pd, height, resolution, trueLength, isPlotted):
+    # Simulate the nadir camera view and retrieve the coordinates of the viewed points.
+    nods = np.array([np.array(s) for s in pd.getNodes()])
+    leafLines = pd.getPolylines(4)
+
+    if isinstance(pd, pb.RootSystem):
+        pd = segs_to_polydata(pd, 1.)
+
+    if isinstance(pd, pb.SegmentAnalyser):
+        pd = segs_to_polydata(pd, 1.)
+
+    if isinstance(pd, pb.Plant):
+        pd = segs_to_polydata(pd, 1.)
+
+    pd.GetPointData().SetActiveScalars("radius")  # for the the filter
+    tubeFilter = vtk.vtkTubeFilter()
+    tubeFilter.SetInputData(pd)
+    tubeFilter.SetNumberOfSides(9)
+    tubeFilter.SetVaryRadiusToVaryRadiusByAbsoluteScalar()
+    tubeFilter.SetCapping(True)
+    tubeFilter.Update()
+    stemModel = tubeFilter.GetOutput()
+
+    # leaves = create_leaf(leafLines)
+    leaves = create_leaves(leafLines)
     appendFilter = vtk.vtkAppendPolyData()
-    for i in range(len(utile)):
-    # for i in range(1):
-        lengthx = -(utile[i][0].x - utile[i][-1].x)
-        lengthy = -(utile[i][0].y - utile[i][-1].y)
-        lengthz = -(utile[i][0].z - utile[i][-1].z)
-        length = lengthx ** 2 + lengthy ** 2 + lengthz ** 2
-        length = math.sqrt(length)
-        p0 = [-length / 4, 0, 0]
-        p1 = [-length / 4, length * 0.8, 0]
-        p2 = [length / 4, length * 0.8, 0]
-        p3 = [length / 4, 0, 0]
-        points = vtk.vtkPoints()
-        points.InsertNextPoint(p0)
-        points.InsertNextPoint(p1)
-        points.InsertNextPoint(p2)
-        points.InsertNextPoint(p3)
-
-        # Create the polygon
-        polygon = vtk.vtkPolygon()
-        polygon.GetPointIds().SetNumberOfIds(4)  # make a quad
-        polygon.GetPointIds().SetId(0, 0)
-        polygon.GetPointIds().SetId(1, 1)
-        polygon.GetPointIds().SetId(2, 2)
-        polygon.GetPointIds().SetId(3, 3)
-
-        # Add the polygon to a list of polygons
-        polygons = vtk.vtkCellArray()
-        polygons.InsertNextCell(polygon)
-
-        # Create a PolyData
-        polygonPolyData = vtk.vtkPolyData()
-        polygonPolyData.SetPoints(points)
-        polygonPolyData.SetPolys(polygons)
-
-        transfo = vtk.vtkTransform()
-        thetarad = math.atan(lengthz / (math.sqrt(lengthy ** 2 + lengthx ** 2)))
-        theta = thetarad * 360 / (2 * math.pi)
-
-        phi = math.atan(lengthy / lengthx)
-        phi = phi * 360 / (2 * math.pi)
-
-        isOpposate = 0
-        if lengthx < 0:
-            isOpposate = 180  # atan is set between -pi/2 and pi/2 so I add 180° if the angle is not in this interval
-
-        basil = False
-        if basil:
-            transfo.Translate([0, 0, utile[i][0].z])
-        else:
-            transfo.Translate([utile[i][0].x, utile[i][0].y, utile[i][0].z])
-        transfo.RotateWXYZ(theta, [1, 0, 0])
-        transfo.RotateWXYZ(phi - 90 + isOpposate, [0, math.sin(thetarad), math.cos(thetarad)])  # phi+90 because the leaf was
-        # oriented toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
-        if True:
-            transfo.Translate([0, length*0.2, 0])
-
-        transformFilter = vtk.vtkTransformPolyDataFilter()
-        transformFilter.SetTransform(transfo)
-        transformFilter.Update()
-        # transformFilter.SetTransform(rotate2)
-        # transformFilter.SetTransform(translate)
-
-        # transformFilter.SetInputConnection(polygonPolyData.GetOutputPort())
-        transformFilter.SetInputData(polygonPolyData)
-        transformFilter.Update()
-
-        appendFilter.AddInputData(transformFilter.GetOutput())
+    appendFilter.AddInputData(leaves)
+    appendFilter.AddInputData(stemModel)
 
     appendFilter.Update()
-    leaves = appendFilter.GetOutput()
 
-    return leaves
+    plantWithLeaves = appendFilter.GetOutput()
+
+    bsp = vtk.vtkModifiedBSPTree()
+    bsp.SetDataSet(plantWithLeaves)
+    bsp.BuildLocator()
+
+    rays = get_rays(resolution[0], resolution[1], height, trueLength)
+    position = []
+    for i in range(len(rays)):
+        if i % 100 == 0:
+            print(str(i))
+        bestID, bestT, bestX, ok = intersection(bsp, [[0, 0, height], rays[i]])
+        if ok == True:
+            position.append(bestX)
+
+    rays = np.array(rays)
+    twos = np.ones((len(rays), 1))
+    twos /= 2
+    position.append([0, 0, height])
+    position = np.array(position)
+    nods = np.append(nods, np.zeros((len(nods), 1)), axis=1)
+    position = np.append(position, np.ones((len(position), 1)), axis=1)
+    final = np.append(position, nods, axis=0)
+
+    if isPlotted:
+        x = position[:, 0]
+        y = position[:, 1]
+        z = position[:, 2]
+        subfig = go.Scatter3d(
+            x=final[:, 0],
+            y=final[:, 1],
+            z=final[:, 2],
+            # x=position[:200000, 0],
+            # y=position[:200000, 1],
+            # z=position[:200000, 2],
+            mode='markers',
+            marker=dict(
+                size=2,
+                color=final[:, 3],  # nodes_cor.T[1] is organ type, nodes_cor.T[2] is the connection number of a node
+                colorscale='Viridis',
+                opacity=0.8
+            )
+        )
+        fig = make_subplots(
+            rows=1, cols=1,
+            specs=[[{'type': 'surface'}]])
+        fig.add_trace(subfig)
+        fig.update_layout(scene_aspectmode='data', )
+        fig.show()
+
+    return position[:, :-1]
 
 
-def create_basil_leaf(utile):
+def create_leaves(leafLines):
     appendFilter = vtk.vtkAppendPolyData()
-    for i in range(len(utile)):
-        lengthtotx = -(utile[i][0].x - utile[i][-1].x)
-        lengthtoty = -(utile[i][0].y - utile[i][-1].y)
-        lengthtotz = -(utile[i][0].z - utile[i][-1].z)
+    for i in range(len(leafLines)):
+        lengthtotx = -(leafLines[i][0].x - leafLines[i][-1].x)
+        lengthtoty = -(leafLines[i][0].y - leafLines[i][-1].y)
+        lengthtotz = -(leafLines[i][0].z - leafLines[i][-1].z)
         lengthtot = lengthtotx ** 2 + lengthtoty ** 2 + lengthtotz ** 2
         lengthtot = math.sqrt(lengthtot)
         x = 0
-        for j in range(len(utile[i])-1):
-            # if True:
-            if j >= len(utile[i])*0.2:
-                lengthx = -(utile[i][j].x - utile[i][j+1].x)
-                lengthy = -(utile[i][j].y - utile[i][j+1].y)
-                lengthz = -(utile[i][j].z - utile[i][j+1].z)
+        for j in range(len(leafLines[i])-1):
+            if j >= len(leafLines[i])*0.2:
+                lengthx = -(leafLines[i][j].x - leafLines[i][j+1].x)
+                lengthy = -(leafLines[i][j].y - leafLines[i][j+1].y)
+                lengthz = -(leafLines[i][j].z - leafLines[i][j+1].z)
                 length = lengthx ** 2 + lengthy ** 2 + lengthz ** 2
                 length = math.sqrt(length)
+                # # Old implementation with rectangle leaves
                 # p0 = [-lengthtot / 4, 0, 0]
                 # p1 = [-lengthtot / 4, length, 0]
                 # p2 = [lengthtot / 4, length, 0]
                 # p3 = [lengthtot / 4, 0, 0]
-                nb_segments = int(len(utile[i])*0.8)
+                nb_segments = int(len(leafLines[i])*0.8)
                 x2 = (x/(nb_segments/2 - 0.5)) - 1
                 y1 = (-x2**2 + 1) * lengthtot * 0.2
                 # If we want something else than rectangle, we define a function f(x) = x**2
@@ -422,20 +289,16 @@ def create_basil_leaf(utile):
                 if lengthx < 0:
                     isOpposate = 180  # atan is set between -pi/2 and pi/2 so I add 180° if the angle is not in this interval
 
-                transfo.Translate([utile[i][j].x, utile[i][j].y, utile[i][j].z])
+                transfo.Translate([leafLines[i][j].x, leafLines[i][j].y, leafLines[i][j].z])
                 transfo.RotateWXYZ(theta, [1, 0, 0])
                 transfo.RotateWXYZ(phi - 90 + isOpposate,
-                                   [0, math.sin(thetarad), math.cos(thetarad)])  # phi+90 because the leaf was
-                # oriented toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
-                # transfo.Translate([0, length * 0.2, 0])
+                                   [0, math.sin(thetarad), math.cos(thetarad)])  # phi-90 because the leaf was oriented
+                # toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
 
                 transformFilter = vtk.vtkTransformPolyDataFilter()
                 transformFilter.SetTransform(transfo)
                 transformFilter.Update()
-                # transformFilter.SetTransform(rotate2)
-                # transformFilter.SetTransform(translate)
 
-                # transformFilter.SetInputConnection(polygonPolyData.GetOutputPort())
                 transformFilter.SetInputData(polygonPolyData)
                 transformFilter.Update()
 
@@ -447,16 +310,16 @@ def create_basil_leaf(utile):
     return leaves
 
 
-def create_rosette(utile2):
+def create_rosette(stemLines):
     appendFilter = vtk.vtkAppendPolyData()
-    compteur = 0
-    for i in range(len(utile2)):
-        # for i in range(1):
-        if utile2[i][0].z == -3 and np.abs(utile2[i][-1].x) + np.abs(utile2[i][-1].y) > 0.1:
-            compteur += 1
-            lengthx = -(utile2[i][0].x - utile2[i][-1].x)
-            lengthy = -(utile2[i][0].y - utile2[i][-1].y)
-            lengthz = -(utile2[i][0].z - utile2[i][-1].z)
+    counter = 0
+    for i in range(len(stemLines)):
+        if stemLines[i][0].z == -3 and np.abs(stemLines[i][-1].x) + np.abs(stemLines[i][-1].y) > 0.1:
+            # Only keeps the tricky stem that are the rosette leaves.
+            counter += 1
+            lengthx = -(stemLines[i][0].x - stemLines[i][-1].x)
+            lengthy = -(stemLines[i][0].y - stemLines[i][-1].y)
+            lengthz = -(stemLines[i][0].z - stemLines[i][-1].z)
             length = lengthx ** 2 + lengthy ** 2 + lengthz ** 2
             length = math.sqrt(length)
             p0 = [0, 0, 0]
@@ -471,7 +334,7 @@ def create_rosette(utile2):
 
             # Create the polygon
             polygon = vtk.vtkPolygon()
-            polygon.GetPointIds().SetNumberOfIds(3)  # make a quad
+            polygon.GetPointIds().SetNumberOfIds(3)  # make a triangle
             polygon.GetPointIds().SetId(0, 0)
             polygon.GetPointIds().SetId(1, 1)
             polygon.GetPointIds().SetId(2, 2)
@@ -497,20 +360,17 @@ def create_rosette(utile2):
             if lengthx < 0:
                 isOpposate = 180  # atan is set between -pi/2 and pi/2 so I add 180° if the angle is not in this interval
 
-            transfo.Translate([0, 0, utile2[i][0].z])
+            transfo.Translate([0, 0, stemLines[i][0].z])
             transfo.RotateWXYZ(theta, [1, 0, 0])
             transfo.RotateWXYZ(phi - 90 + isOpposate,
-                               [0, math.sin(thetarad), math.cos(thetarad)])  # phi+90 because the leaf was
-            # oriented toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
+                               [0, math.sin(thetarad), math.cos(thetarad)])  # phi+90 because the leaf was oriented
+            # toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
             transfo.Translate([0, length * 0.2, 0])
 
             transformFilter = vtk.vtkTransformPolyDataFilter()
             transformFilter.SetTransform(transfo)
             transformFilter.Update()
-            # transformFilter.SetTransform(rotate2)
-            # transformFilter.SetTransform(translate)
 
-            # transformFilter.SetInputConnection(polygonPolyData.GetOutputPort())
             transformFilter.SetInputData(polygonPolyData)
             transformFilter.Update()
 

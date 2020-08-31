@@ -1,3 +1,9 @@
+"""
+Just a test script, need to be remove at the end of the project
+"""
+
+
+
 ################### Convert CPlantBox -> PiafMunch and post processing ###################
 #\   \ /\  ____ CPlantBox: creates the plant structure. Link: cplantbox.com              #
 # \___\|| /   / PiafMunch: carbon and water flow simulation in structure. Link:          #

@@ -47,7 +47,7 @@ def create_basil():
 	s2.la = 0
 	s2.ln = 3  # This value is normally the Inter-lateral distance [cm], but with decussate plant, this value is
 	# multiplied by 2
-	s2.lnf = 5
+	s2.lnf = 5  # This value means "successors in a decussate position"
 	s2.RotBeta = 1
 	s2.BetaDev = 0
 	s2.InitBeta = 0
@@ -59,7 +59,7 @@ def create_basil():
 	s2.tropismN = 18
 	s2.tropismS = 0.01
 
-	s3.name = "invisible"
+	s3.name = "invisible"  # The invisible stem representing the bud of the leaf
 	s3.subType = 2
 	s3.la = 0
 	s3.ln = 0
@@ -85,7 +85,7 @@ def create_basil():
 	l1.theta = 0.35
 	l1.thetas = 0.05
 	l1.gf = 1
-	l1.lnf = 5
+	l1.lnf = 5  # If not precised, it will not be possible to do the opposite decussate arrangement
 
 	plant.setOrganRandomParameter(p0)
 	plant.setOrganRandomParameter(p1)

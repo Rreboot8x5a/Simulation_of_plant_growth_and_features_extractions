@@ -37,17 +37,18 @@ time = 50  # how many days the plant need to grow, make it smaller, for example 
 #     fig.show()
     
     
-plant = create_basil()
+# plant = create_basil()
 # plant = create_arabidopsis()
-# plant = creacrea()
+plant = creacrea()
 plant.initialize(True)
 plant.simulate(time)
-# fig = visual_plant(plant)
-# fig.show()
+fig = visual_plant(plant)
+fig.show()
 
 # # If you want to plot using vtk then simulate the camera recording
-plot_plant(plant, "creationTime")
-# coords = vp.camera_view(plant1, 50, [1280, 720], 50, False)
+plot_plant(plant, "creationTime", plantType="arabidopsis")
+coords = camera_view(plant, 50, [1280, 720], 50, False)
+print('debug stop')
 # file = open("basil_coordinates.txt", "w")
 # mot = []
 # for coord in coords:

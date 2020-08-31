@@ -1,3 +1,8 @@
+"""
+Old version of Generate_and_visualise
+Need to be removed at the end of the project
+"""
+
 # #<---Click this triangle to load python libraries/ download CPlantBox from GitHub/ Make a plant and visualize it
 #############loading other python library or packages. Only need to run once at the start.##########
 import os
