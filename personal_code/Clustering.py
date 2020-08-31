@@ -13,7 +13,7 @@ def split(arr, cond):
   return arr[cond], arr[~cond]
 
 
-def getLeaves(ncoord):
+def get_leaves(ncoord):
     length, width, height, trueLength = 1280, 720, 50, 50
     dp = trueLength/length  # the length of a pixel if it hits the ground
 
@@ -37,7 +37,7 @@ def getLeaves(ncoord):
 
         for i in range(len(leaves)):  # delete cluster without enough point
             # if len(leaves[i]) < 0.01 * len(ncoord):
-            if len(leaves[i]) < 100:
+            if len(leaves[i]) < 100:  # Removing the cluster with the stem tip
                 leaves[i] = np.array([1])  # Just a definite array to check whether we keep the cluster or not
 
         nb_points_clean = 0
@@ -46,50 +46,42 @@ def getLeaves(ncoord):
                 nb_points_clean += len(cluster)
         if nb_points_clean != 0:
             # ncoord2 = np.zeros((nb_points_clean, 3))
-            ncoord2 = np.zeros((nb_points_clean, 4))
-            indice = 0
-            for i in range(len(leaves)):
-                ncoord2[indice:indice + len(leaves[i]), :-1] = leaves[i]
-                ncoord2[indice:indice + len(leaves[i]), -1] = np.full((len(leaves[i])), i)
-                indice += len(leaves[i])
-
+            # ncoord2 = np.zeros((nb_points_clean, 4))
+            # indice = 0
+            # for i in range(len(leaves)):
+            #     ncoord2[indice:indice + len(leaves[i]), :-1] = leaves[i]
+            #     ncoord2[indice:indice + len(leaves[i]), -1] = np.full((len(leaves[i])), i)
+            #     indice += len(leaves[i])
             return leaves, nb_classes, pred
-        else:
+        else:  # There is at least one cluster, but those clusters are not big enough
             return [], nb_classes, []
     else:
         return [], nb_classes, []
 
 
-def removeStem(leaves):
-    for leaf in leaves:
-        print('yolo')
-
-
-def getHeight(ncoord):
+def get_height(ncoord):
     zcoord = np.copy(ncoord[:, 2])
     zcoord.sort()
     height = zcoord[-2]
     return height
 
 
-def getUpperLeaves(leaves2):  # Can be more precise if we take the height of the beginning of the petiole
-    # (but only working if the main stem is totally vertical, or the point will not be guessed correctly)
-    zMeans = []
-    for i in range(len(leaves2)):
-        if len(leaves2[i]) != 1:
-            sum = np.sum(leaves2[i][:, 2])
-            nb = len(leaves2[i])
-            zMeans.append([i, np.sum(leaves2[i][:, 2]) / len(leaves2[i])])
-    if len(zMeans) != 0:
-        zMeans = np.array(zMeans)
-        zMeans = zMeans[zMeans[:, 1].argsort()]
-        return zMeans[-1, 0], zMeans[-2, 0]
-    else:
-        return -1, -1
+# def getUpperLeaves(leaves2):  # Can be more precise if we take the height of the beginning of the petiole
+#     # (but only working if the main stem is totally vertical, or the point will not be guessed correctly)
+#     zMeans = []
+#     for i in range(len(leaves2)):
+#         if len(leaves2[i]) != 1:
+#             zMeans.append([i, np.sum(leaves2[i][:, 2]) / len(leaves2[i])])
+#     if len(zMeans) != 0:
+#         zMeans = np.array(zMeans)
+#         zMeans = zMeans[zMeans[:, 1].argsort()]
+#         return zMeans[-1, 0], zMeans[-2, 0]
+#     else:
+#         return -1, -1
 
 
-def getPetioleBeginning(leaf):
-    tempLeaf = np.copy(leaf)
+def get_petiole_beginning(leaf):  # The leaf cloud must not be transformed by the PCA
+    tempLeaf = np.copy(leaf)  # To avoid transformation on original leaf
     distFromCenter = np.sqrt(tempLeaf[:, 0]**2 + tempLeaf[:, 1]**2)
     leaf2 = np.append(np.arange(len(tempLeaf))[np.newaxis].T, tempLeaf, axis=1)
     leaf2 = np.append(leaf2, distFromCenter[np.newaxis].T, axis=1)
@@ -100,16 +92,17 @@ def getPetioleBeginning(leaf):
     return int(index), z
 
 
-def getLengthWidth(leaf):
-    index, zNode = getPetioleBeginning(leaf)
+def get_parameters(leaf):
+    index, zNode = get_petiole_beginning(leaf)
     pca = PCA(n_components=3)
     leafPCA = pca.fit_transform(X=leaf)
+    # plot_data(leafPCA, leafPCA[:, 0])
     eigenVectorX2 = pca.components_[0]
     horiz = np.sqrt(eigenVectorX2[0] ** 2 + eigenVectorX2[1] ** 2)
     angle = np.abs(math.atan(eigenVectorX2[2]/horiz))
     angle2 = 90 - angle/math.pi * 180
-    xLeaf = np.copy(leafPCA)
-    yLeaf = np.copy(leafPCA)
+    xLeaf = np.copy(leafPCA)  # A copy of the leaf after the PCA transform, will be sorted by the first axis value (x)
+    yLeaf = np.copy(leafPCA)  # A copy of the leaf after the PCA transform, will be sorted by the second axis value (y)
     xLeaf = np.append(np.arange(len(xLeaf))[np.newaxis].T, xLeaf, axis=1)
     xLeaf = xLeaf[xLeaf[:, 1].argsort()]
     length = xLeaf[-1, 1] - xLeaf[0, 1]
@@ -117,7 +110,7 @@ def getLengthWidth(leaf):
     yLeaf = yLeaf[yLeaf[:, 2].argsort()]
     width = yLeaf[-1, 2] - yLeaf[0, 2]
 
-    xPos, xPetiole, xLeaf2 = separatePetioleFromLeaf(xLeaf, index)
+    xPos, xPetiole, xLeaf2 = separate_petiole_from_leaf(xLeaf, index)  # xLeaf2 is a copy of xLeaf without the petiole
     xLeaf2 = xLeaf2[xLeaf2[:, 1].argsort()]
     leafLength = xLeaf[-1, 1] - xLeaf[0, 1]
     petioleLength = length - leafLength
@@ -142,12 +135,12 @@ def getLengthWidth(leaf):
     # fig.update_layout(scene_aspectmode='data', )
     # fig.show()
 
-    return leafLength, width, leafPCA, angle2, zNode
+    return leafLength, width, angle2, zNode
 
 
-def separatePetioleFromLeaf(xLeaf, beginIndex):
+def separate_petiole_from_leaf(xLeaf, beginIndex):
     print('CQC over 9000')
-    # beginIndex = getPetioleBeginning(xLeaf)
+    # beginIndex = get_petiole_beginning(xLeaf)
     end = xLeaf[-1, 1]
     begin = xLeaf[0, 1]
     direction = 0
@@ -169,7 +162,6 @@ def separatePetioleFromLeaf(xLeaf, beginIndex):
         yMin = np.amin(validPoints)
 
         if yMax - yMin >= 0.3:
-            noBug = True
             break
 
     xPetiole, xLeaf = split(xLeaf, xLeaf[:, 1] * direction <= position * direction)
@@ -177,15 +169,15 @@ def separatePetioleFromLeaf(xLeaf, beginIndex):
     # (because "position" has a max error of 1mm so we can cute the leaf to late)
 
     # subfig = go.Scatter3d(
-    #     x=xPetiole[:, 1],
-    #     y=xPetiole[:, 2],
-    #     z=xPetiole[:, 3],
+    #     x=xLeaf[:, 1],
+    #     y=xLeaf[:, 2],
+    #     z=xLeaf[:, 3],
     #     mode='markers',
     #     marker=dict(
     #         size=2,
     #         # color=pred,
-    #         # color=xLeaf[:, 0],
-    #         color=xPetiole[:, 0],
+    #         color=xLeaf[:, 0],
+    #         # color=xPetiole[:, 0],
     #         colorscale='Viridis',
     #         opacity=0.8
     #     )
@@ -233,7 +225,7 @@ def getCenterCluster(cluster):  # Need cluster before any transformation (cluste
 #     # fig.show()
 
 
-def getHiddenLeafCharacteristics(leaf):
+def get_hidden_leaf_characteristics(leaf):
     # Copié d'autre endroit, permet de récupérer le bout de la feuille
     tempLeaf = np.copy(leaf)
     distFromCenter = np.sqrt(tempLeaf[:, 0] ** 2 + tempLeaf[:, 1] ** 2)
@@ -282,10 +274,10 @@ def getHiddenLeafCharacteristics(leaf):
     # fig.add_trace(subfig)
     # fig.update_layout(scene_aspectmode='data', )
     # fig.show()
-    return angle, zNode, length, width
+    return length, width, angle, zNode
 
 
-def separateUnitedLeaves(clusters):  # On suppose envoyer tous les clusters en ayant nettoyé les trop petits
+def separate_united_leaves(clusters):  # list of clusters with removed clusters set as the following list : [1]
     listCenters = list()
     for cluster in clusters:
         if len(cluster) != 1:
@@ -320,7 +312,7 @@ def separateUnitedLeaves(clusters):  # On suppose envoyer tous les clusters en a
     return clusters
 
 
-def readData(dt):
+def read_data(dt):
     # Reading the txt file
     f = open("../BasilData/basil_coordinates_t{}.txt".format(dt), "r")
     # f = open("basil_coordinates_feuilles_plates.txt", "r")
@@ -335,7 +327,7 @@ def readData(dt):
     return ncoord
 
 
-def plotPlant(coord, label):
+def plot_data(coord, label):
     subfig = go.Scatter3d(
         x=coord[:, 0],
         y=coord[:, 1],
@@ -356,7 +348,7 @@ def plotPlant(coord, label):
     fig.show()
 
 
-def getNumpyArray(leaves):
+def get_numpy_array(leaves):
     ncoord = leaves[0]
     ncoord = np.append(ncoord, np.ones((len(leaves[0]), 1)) * 0, axis=1)
     for i in range(1, len(leaves)):
@@ -371,9 +363,9 @@ def getNumpyArray(leaves):
 #     # en t (ou blabla) = 38, le centre de gravité est loin du centre donc y a pas de séparation de feuille :'(
 #     # 18
 #     # f = open("basil_coordinates2.txt", "r")
-#     ncoord = readData(blabla)
+#     ncoord = read_data(blabla)
 #
-#     plantHeight = getHeight(ncoord)
+#     plantHeight = get_height(ncoord)
 #
 #     length, width, height, trueLength = 1280, 720, 50, 50
 #
@@ -385,14 +377,14 @@ def getNumpyArray(leaves):
 #     # ax.view_init(azim=200)
 #     # plt.show()
 #
-#     # getLeaves(ncoord)
+#     # get_leaves(ncoord)
 #
-#     leaves, nb_classes, pred = getLeaves(ncoord)
+#     leaves, nb_classes, pred = get_leaves(ncoord)
 #
-#     plotPlant(ncoord, pred)
+#     plot_data(ncoord, pred)
 #     if nb_classes > 1:
 #         un, deux = getUpperLeaves(leaves)
-#         leaves = separateUnitedLeaves(leaves)
+#         leaves = separate_united_leaves(leaves)
 #         ncoord2 = np.copy(leaves[0])
 #         ncoord2 = np.append(ncoord2, np.ones((len(leaves[0]), 1))*0, axis=1)
 #         for j in range(1, len(leaves)):
@@ -401,7 +393,7 @@ def getNumpyArray(leaves):
 #                 # Il faut rajouter une colonne qui est le label
 #                 temp = np.append(temp, np.ones((len(leaves[j]), 1))*j, axis=1)
 #                 ncoord2 = np.append(ncoord2, temp, axis=0)
-#         plotPlant(ncoord2[:, :3], ncoord2[:, 3])
+#         plot_data(ncoord2[:, :3], ncoord2[:, 3])
 #
 #
 #     # model = DBSCAN(eps=4*dp, min_samples=15, n_jobs=4)
@@ -445,7 +437,7 @@ def getNumpyArray(leaves):
 #     #             nb_points_clean += len(cluster)
 #     #     # ncoord2 = np.zeros((nb_points_clean, 3))
 #     #     ncoord2 = np.zeros((nb_points_clean, 4))
-#     #     leaves2 = separateUnitedLeaves(leaves2)
+#     #     leaves2 = separate_united_leaves(leaves2)
 #     #     indice = 0
 #     #     for i in range(len(leaves2)):
 #     #         if len(leaves2[i]) != 1:
@@ -455,13 +447,13 @@ def getNumpyArray(leaves):
 #     #
 #     #     un, deux = getUpperLeaves(leaves2)
 #     #
-#     #     # length, width, leafPCA, angle2, zNode = getLengthWidth(leaves2[int(un)])
+#     #     # length, width, leafPCA, angle2, zNode = get_parameters(leaves2[int(un)])
 #     #
 #     #     # xmean, ymean, _ = getCenterCluster(leaves2[int(un)])
 #     #     # planNormal = [xmean, ymean, 0]
-#     #     # angle8, zNode8, _, _ = getHiddenLeafCharacteristics(leaves2[8])
-#     #     # angle0, zNode0, _, _ = getHiddenLeafCharacteristics(leaves2[0])
-#     #     # getHiddenLeafCharacteristics(leaves2[2])
+#     #     # angle8, zNode8, _, _ = get_hidden_leaf_characteristics(leaves2[8])
+#     #     # angle0, zNode0, _, _ = get_hidden_leaf_characteristics(leaves2[0])
+#     #     # get_hidden_leaf_characteristics(leaves2[2])
 #     #
 #     #     subfig = go.Scatter3d(
 #     #         # x=leaves[2][:, 0],
