@@ -18,6 +18,16 @@ from vtk_plot_bis import *
 
 time = 50  # how many days the plant need to grow, make it smaller, for example 15 to see if the plant becomes smaller
 
+# Rename file that ara wrongly named
+# i = 47
+# while i >= 0:
+#     old = "/home/roberto/Téléchargements/CPlantBox-vierge/ArabidopsisData/arabidopsis_coordinates_t" + str(i) + ".txt"
+#     new = "/home/roberto/Téléchargements/CPlantBox-vierge/ArabidopsisData/arabidopsis_coordinates_t" + str(i+1) + ".txt"
+#     os.rename(old, new)
+#     i -= 1
+# print('yeah')
+
+
 # for dt in range(1, int(time)):
 #     plant1 = CPlantBox(name, dt, name) # make a plant object in python
 #     # Visualization
@@ -38,17 +48,18 @@ time = 50  # how many days the plant need to grow, make it smaller, for example 
     
     
 # plant = create_basil()
-# plant = create_arabidopsis()
-plant = creacrea()
-plant.initialize(True)
-plant.simulate(time)
-fig = visual_plant(plant)
-fig.show()
+# # plant = create_arabidopsis()
+# plant = creacrea()
+# plant.initialize(True)
+# plant.simulate(time)
+# fig = visual_plant(plant)
+# fig.show()
+# print('Finito')
 
 # # If you want to plot using vtk then simulate the camera recording
-plot_plant(plant, "creationTime", plantType="arabidopsis")
-coords = camera_view(plant, 50, [1280, 720], 50, False)
-print('debug stop')
+# plot_plant(plant, "creationTime", plantType="basil")
+# coords = camera_view(plant, 50, [1280, 720], 50, False)
+# print('debug stop')
 # file = open("basil_coordinates.txt", "w")
 # mot = []
 # for coord in coords:
@@ -61,7 +72,29 @@ print('debug stop')
 #     plant1.initialize(True)
 #     plant1.simulate(dt)
 #     coords = vp.camera_view(plant1, 50, [1280, 720], 50, False)
-#     file = open("BasilData/basil_coordinates_t{}.txt".format(dt), "w")
+#     # file = open("BasilData/basil_coordinates_t{}.txt".format(dt), "w")
+#     file = open("Arabidopsis/basil_coordinates_t{}.txt".format(dt), "w")
+#     mot = []
+#     for coord in coords:
+#         file.write(str(coord[0]) + ',' + str(coord[1]) + ',' + str(coord[2]) + '\n')
+#     file.close()
+
+# plant1 = creacrea()
+# plant1.initialize(True)
+# listPlant = []
+# for dt in range(1, time):
+#     plant1.simulate(1)  # Simulate one time step further than before
+#     listPlant.append(plant1.copy())
+# fig = visual_plant(listPlant[-1])
+# fig.show()
+# print('mate kudasai')
+# plot_plant(listPlant[-1], "plant", plantType="arabidopsis")
+# print('tchioto')
+#
+# for i in range(len(listPlant)):
+#     coords = camera_view(listPlant[i], 50, [1280, 720], 50, False, plantType="arabidopsis")
+#     # file = open("BasilData/basil_coordinates_t{}.txt".format(dt), "w")
+#     file = open("/home/roberto/Téléchargements/CPlantBox-vierge/ArabidopsisData/arabidopsis_coordinates_t{}.txt".format(i+1), "w")
 #     mot = []
 #     for coord in coords:
 #         file.write(str(coord[0]) + ',' + str(coord[1]) + ',' + str(coord[2]) + '\n')
