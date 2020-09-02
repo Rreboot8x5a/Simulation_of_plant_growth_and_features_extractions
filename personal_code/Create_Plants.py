@@ -378,22 +378,50 @@ def creacrea():  # Temporary code use for test purpose, it will eventually becom
 
 	s1.name = "mainstem"
 	s1.subType = 1
-	s1.lmax = 50
-	s1.lb = 2
-	s1.la = 1
-	s1.ln = 4
-	s1.lnf = 0
+	s1.lmax = 25
+	s1.lmaxs = 1
+	s1.lb = 0
+	s1.lbs = 0.1
+	s1.la = 3
+	s1.las = 0.1
+	s1.ln = 3
+	s1.lns = 0.2
+	s1.lnf = 0  # 1 peut être cool
 	s1.RotBeta = 0
 	s1.BetaDev = 0
 	s1.InitBeta = 0
 	s1.gf = 1
 	s1.successor = [3, 2]
-	s1.successorP = [0.5, 0.5]
+	s1.successorP = [0.3, 0.7]
 	s1.tropismT = 4
 	s1.theta = 0.
 	s1.tropismN = 18
 	s1.tropismS = 0.01
 	s1.r = 1
+	s1.rs = 0.05
+
+	s2.name = "secondary_stem"
+	s2.subType = 3
+	s2.lmax = 7
+	s2.lmaxs = 0.2
+	s2.lb = 0
+	s2.la = 2
+	s2.ln = 2
+	s2.lns = 0.1
+	s2.lnf = 0
+	s2.RotBeta = 2 / 3
+	s2.BetaDev = 0.1
+	s2.InitBeta = 0
+	s2.gf = 1
+	s2.successor = [2]
+	s2.successorP = [1]
+	s2.tropismT = 4
+	s2.theta = 0.3
+	s2.thetas = 0.02
+	s2.tropismN = 18
+	s2.tropismS = 0.01
+	s2.r = 0.5
+	s2.rs = 0.02
 
 	s3.name = "invisible stem"
 	s3.subType = 2
@@ -417,31 +445,14 @@ def creacrea():  # Temporary code use for test purpose, it will eventually becom
 	s3.tropismS = 0.01
 	s3.r = 1
 
-	s2.name = "secondary_stem"
-	s2.subType = 3
-	s2.lmax = 10
-	s2.lb = 0
-	s2.la = 2
-	s2.ln = 2
-	s2.lnf = 0
-	s2.RotBeta = 2 / 3
-	s2.BetaDev = 0
-	s2.InitBeta = 0
-	s2.gf = 1
-	s2.successor = [2]
-	s2.successorP = [1]
-	s2.tropismT = 4
-	s2.theta = 0.3
-	s2.tropismN = 18
-	s2.tropismS = 0.01
-	s2.r = 0.5
-
 	l1.name = 'leaf_under_second_stem'
 	l1.subType = 2
 	l1.lb = 2
 	l1.la = 0.2
-	l1.lmax = 5
+	l1.lmax = 2
+	l1.lmaxs = 0.1
 	l1.r = 0.5
+	l1.rs = 0.02
 	l1.RotBeta = 0.5
 	l1.BetaDev = 0
 	l1.InitBeta = 0.
@@ -453,20 +464,23 @@ def creacrea():  # Temporary code use for test purpose, it will eventually becom
 
 	s4.name = "rosette"
 	s4.subType = 4
-	s4.lmax = 2
+	s4.lmax = 4
+	s4.lmaxs = 0.2
 	s4.lb = 1
 	s4.la = 0
 	s4.ln = 2
 	s4.lnf = 0
 	s4.RotBeta = 3 / 5
-	s4.BetaDev = 0
+	s4.BetaDev = 0.02
 	s4.InitBeta = 0
 	s4.gf = 1
 	s4.tropismT = 1
 	s4.theta = 0.3
+	s4.thetas = 0.02
 	s4.tropismN = 18
 	s4.tropismS = 0.01
 	s4.r = 0.5
+	s4.rs = 0.02
 
 	plant.setOrganRandomParameter(p0)
 	plant.setOrganRandomParameter(p1)
