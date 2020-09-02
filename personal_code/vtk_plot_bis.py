@@ -65,7 +65,7 @@ def plot_plant(pd, p_name, win_title="", render=True, plantType="basil"):
 
     appendFilter = vtk.vtkAppendPolyData()  # The append filter allows to unite multiple sets of polygonal data
     appendFilter.AddInputData(leaves)  # The leaves are added to the append filter
-    if plantType == "arabidopsis":  # This is teh arabidopsis
+    if plantType == "arabidopsis":
         rosette = create_rosette(rosetteLines)
         appendFilter.AddInputData(rosette)
     appendFilter.AddInputData(tubeFilter.GetOutput())  # The stems and the roots are added to the append filter
@@ -139,10 +139,14 @@ def get_rays(length, width, height, trueLength):
     return rays
 
 
-def camera_view(pd, height, resolution, trueLength, isPlotted):
+def camera_view(pd, height, resolution, trueLength, isPlotted, plantType="basil"):
     # Simulate the nadir camera view and retrieve the coordinates of the viewed points.
     nods = np.array([np.array(s) for s in pd.getNodes()])
     leafLines = pd.getPolylines(4)
+
+    if plantType == "arabidopsis":
+        rosetteLines = pd.getPolylines(3)  # If the arabidopsis is generated, we need the stem lines because one subType
+        # of stem is a trick to create more leaves
 
     if isinstance(pd, pb.RootSystem):
         pd = segs_to_polydata(pd, 1.)
@@ -167,6 +171,9 @@ def camera_view(pd, height, resolution, trueLength, isPlotted):
     appendFilter = vtk.vtkAppendPolyData()
     appendFilter.AddInputData(leaves)
     appendFilter.AddInputData(stemModel)
+    if plantType == "arabidopsis":
+        rosette = create_rosette(rosetteLines)
+        appendFilter.AddInputData(rosette)
 
     appendFilter.Update()
 
@@ -316,65 +323,81 @@ def create_rosette(stemLines):
     for i in range(len(stemLines)):
         if stemLines[i][0].z == -3 and np.abs(stemLines[i][-1].x) + np.abs(stemLines[i][-1].y) > 0.1:
             # Only keeps the tricky stem that are the rosette leaves.
-            counter += 1
-            lengthx = -(stemLines[i][0].x - stemLines[i][-1].x)
-            lengthy = -(stemLines[i][0].y - stemLines[i][-1].y)
-            lengthz = -(stemLines[i][0].z - stemLines[i][-1].z)
-            length = lengthx ** 2 + lengthy ** 2 + lengthz ** 2
-            length = math.sqrt(length)
-            p0 = [0, 0, 0]
-            p1 = [-length / 10, length, 0]
-            p2 = [length / 10, length, 0]
-            # p3 = [length / 4, 0, 0]
-            points = vtk.vtkPoints()
-            points.InsertNextPoint(p0)
-            points.InsertNextPoint(p1)
-            points.InsertNextPoint(p2)
-            # points.InsertNextPoint(p3)
+            lengthtotx = -(stemLines[i][0].x - stemLines[i][-1].x)
+            lengthtoty = -(stemLines[i][0].y - stemLines[i][-1].y)
+            lengthtotz = -(stemLines[i][0].z - stemLines[i][-1].z)
+            lengthtot = lengthtotx ** 2 + lengthtoty ** 2 + lengthtotz ** 2
+            lengthtot = math.sqrt(lengthtot)
 
-            # Create the polygon
-            polygon = vtk.vtkPolygon()
-            polygon.GetPointIds().SetNumberOfIds(3)  # make a triangle
-            polygon.GetPointIds().SetId(0, 0)
-            polygon.GetPointIds().SetId(1, 1)
-            polygon.GetPointIds().SetId(2, 2)
-            # polygon.GetPointIds().SetId(3, 3)
+            x = 0
+            for j in range(len(stemLines[i]) - 1):
+                if j >= len(stemLines[i]) * 0.2:
+                    lengthx = -(stemLines[i][j].x - stemLines[i][j + 1].x)
+                    lengthy = -(stemLines[i][j].y - stemLines[i][j + 1].y)
+                    lengthz = -(stemLines[i][j].z - stemLines[i][j + 1].z)
+                    length = lengthx ** 2 + lengthy ** 2 + lengthz ** 2
+                    length = math.sqrt(length)
+                    nb_segments = int(len(stemLines[i]) * 0.8)
+                    x2 = (x / (nb_segments / 2 - 0.5)) - 1
+                    y1 = (-x2 ** 2 + 1) * lengthtot * 0.2
+                    y1 = (-x ** 3 + x ** 2) * lengthtot
+                    # If we want something else than rectangle, we define a function f(x) = x**2
+                    y2 = (-(x2 + 1 / (nb_segments / 2 - 0.5)) ** 2 + 1) * lengthtot * 0.2  # there we take x2 + dx
+                    y2 = (-(x + 1/nb_segments) ** 3 + (x + 1/nb_segments) ** 2) * lengthtot
+                    x += 1/nb_segments
+                    p0 = [-y1, 0, 0]
+                    p1 = [-y2, length, 0]
+                    p2 = [y2, length, 0]
+                    p3 = [y1, 0, 0]
+                    points = vtk.vtkPoints()
+                    points.InsertNextPoint(p0)
+                    points.InsertNextPoint(p1)
+                    points.InsertNextPoint(p2)
+                    points.InsertNextPoint(p3)
 
-            # Add the polygon to a list of polygons
-            polygons = vtk.vtkCellArray()
-            polygons.InsertNextCell(polygon)
+                    # Create the polygon
+                    polygon = vtk.vtkPolygon()
+                    polygon.GetPointIds().SetNumberOfIds(4)  # make a quad
+                    polygon.GetPointIds().SetId(0, 0)
+                    polygon.GetPointIds().SetId(1, 1)
+                    polygon.GetPointIds().SetId(2, 2)
+                    polygon.GetPointIds().SetId(3, 3)
 
-            # Create a PolyData
-            polygonPolyData = vtk.vtkPolyData()
-            polygonPolyData.SetPoints(points)
-            polygonPolyData.SetPolys(polygons)
+                    # Add the polygon to a list of polygons
+                    polygons = vtk.vtkCellArray()
+                    polygons.InsertNextCell(polygon)
 
-            transfo = vtk.vtkTransform()
-            thetarad = math.atan(lengthz / (math.sqrt(lengthy ** 2 + lengthx ** 2)))
-            theta = thetarad * 360 / (2 * math.pi)
+                    # Create a PolyData
+                    polygonPolyData = vtk.vtkPolyData()
+                    polygonPolyData.SetPoints(points)
+                    polygonPolyData.SetPolys(polygons)
 
-            phi = math.atan(lengthy / lengthx)
-            phi = phi * 360 / (2 * math.pi)
+                    transfo = vtk.vtkTransform()
+                    thetarad = math.atan(lengthz / (math.sqrt(lengthy ** 2 + lengthx ** 2)))
+                    theta = thetarad * 360 / (2 * math.pi)
 
-            isOpposate = 0
-            if lengthx < 0:
-                isOpposate = 180  # atan is set between -pi/2 and pi/2 so I add 180° if the angle is not in this interval
+                    phi = math.atan(lengthtoty / lengthtotx)
+                    phi = phi * 360 / (2 * math.pi)
 
-            transfo.Translate([0, 0, stemLines[i][0].z])
-            transfo.RotateWXYZ(theta, [1, 0, 0])
-            transfo.RotateWXYZ(phi - 90 + isOpposate,
-                               [0, math.sin(thetarad), math.cos(thetarad)])  # phi+90 because the leaf was oriented
-            # toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
-            transfo.Translate([0, length * 0.2, 0])
+                    isOpposate = 0
+                    if lengthx < 0:
+                        isOpposate = 180  # atan is set between -pi/2 and pi/2 so I add 180° if the angle is not in this interval
 
-            transformFilter = vtk.vtkTransformPolyDataFilter()
-            transformFilter.SetTransform(transfo)
-            transformFilter.Update()
+                    transfo.Translate([stemLines[i][j].x, stemLines[i][j].y, stemLines[i][j].z])
+                    transfo.RotateWXYZ(theta, [1, 0, 0])
+                    transfo.RotateWXYZ(phi - 90 + isOpposate,
+                                       [0, math.sin(thetarad),
+                                        math.cos(thetarad)])  # phi-90 because the leaf was oriented
+                    # toward y. the axes are bind to the polygon, so the second rotation does not use z absolute axe
 
-            transformFilter.SetInputData(polygonPolyData)
-            transformFilter.Update()
+                    transformFilter = vtk.vtkTransformPolyDataFilter()
+                    transformFilter.SetTransform(transfo)
+                    transformFilter.Update()
 
-            appendFilter.AddInputData(transformFilter.GetOutput())
+                    transformFilter.SetInputData(polygonPolyData)
+                    transformFilter.Update()
+
+                    appendFilter.AddInputData(transformFilter.GetOutput())
 
     appendFilter.Update()
     leaves = appendFilter.GetOutput()
