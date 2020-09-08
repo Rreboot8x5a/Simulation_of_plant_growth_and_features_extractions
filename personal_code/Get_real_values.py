@@ -8,12 +8,8 @@ import numpy as np
 import math
 
 
-def get_real_parameters(actualTime):
+def get_real_parameters(plant):
     plantChar = {}
-    plant = create_basil()
-    plant.initialize(True)
-    # plant.simulate(actualTime)
-    plant.simulate(1)
 
     plStem = plant.getPolylines(3)
     if len(plStem) != 0:
@@ -29,7 +25,7 @@ def get_real_parameters(actualTime):
             print('Error : not the same number of organs with getPolylines and getOrgans !')
         for i in range(len(plLeaf)):
             length = organLeafList[i].getLength() * 0.8
-            width = organLeafList[i].getLength() * 0.2  # Needs to be more precised
+            width = organLeafList[i].getLength() * 0.4  # Needs to be more precised
             # (as it is originally defined as 0.2 * lengthtot, where lengthtot = dist(firstPoint, lastPoint) )
 
             meanX = 0
@@ -54,13 +50,29 @@ def get_real_parameters(actualTime):
             else:
                 isHidden = False
 
-            plantChar[str(i)] = {
-                "length": length,
-                "width": width,
-                "angle": angle,
-                "nodeHeight": z,
-                "Hidden": isHidden
+            plantChar[i+1] = {
+                "Leaf length": length,
+                "Width": width,
+                "Angle": angle,
+                "Node height": z,
+                "Total length": length / 0.8,
             }
     return plantChar
 
-# get_real_parameters(10)
+
+def write_real_parameters_file(name, totalDictionary):
+    f = open(name, 'w')
+    f.write(str(totalDictionary))
+    f.close()
+
+
+def read_real_parameters_file(name):
+    f = open(name, 'r')
+    stringDict = f.read()
+    allPlantTime = eval(stringDict)
+    return allPlantTime
+
+
+def compute_errors():
+    print('just a random sentence')
+    # TODO compute the error precisely
