@@ -55,6 +55,7 @@ def create_basil():
 	s2.successor = [2]
 	s2.successorP = [1]
 	s2.tropismT = 4
+	# s2.theta = 1/6
 	s2.theta = 0
 	s2.tropismN = 18
 	s2.tropismS = 0.01
@@ -94,7 +95,8 @@ def create_basil():
 	plant.setOrganRandomParameter(l1)
 
 	srp = pb.SeedRandomParameter(plant)  # with default values
-	srp.seedPos = pb.Vector3d(0., 0., -3.)  # [cm] seed position
+	# srp.seedPos = pb.Vector3d(10, 10, -3.)  # [cm] seed position
+	srp.seedPos = pb.Vector3d(0, 0, -3.)  # [cm] seed position
 	srp.maxB = 0  # [-] number of basal roots (neglecting basal roots and shoot borne)
 	srp.firstB = 10.  # [day] first emergence of a basal root
 	srp.delayB = 3.  # [day] delay between the emergence of basal roots
@@ -393,10 +395,13 @@ def creacrea():  # Temporary code use for test purpose, it will eventually becom
 	s1.gf = 1
 	s1.successor = [3, 2]
 	s1.successorP = [0.3, 0.7]
-	s1.tropismT = 4
+	# s1.successor = [3]
+	# s1.successorP = [1]
+	s1.tropismT = 1
 	s1.theta = 0.
-	s1.tropismN = 18
-	s1.tropismS = 0.01
+	s1.thetas = 0.05
+	s1.tropismN = 2
+	s1.tropismS = 0.005
 	s1.r = 1
 	s1.rs = 0.05
 
@@ -464,7 +469,7 @@ def creacrea():  # Temporary code use for test purpose, it will eventually becom
 
 	s4.name = "rosette"
 	s4.subType = 4
-	s4.lmax = 4
+	s4.lmax = 10
 	s4.lmaxs = 0.2
 	s4.lb = 1
 	s4.la = 0
