@@ -26,11 +26,12 @@ Moreover, it simulates the nadir camera view and retrieve the coordinates of the
 
 
 def plot_plant(pd, p_name, win_title="", render=True, plantType="basil"):
-    """ plots the plant system 
+    """ plots the plant system (basically just a copy of plot_root adapted so it can add leaves)
     @param pd         the polydata representing the plant system (lines, or polylines)
     @param p_name     parameter name of the data to be visualized
     @param win_title  the windows titles (optionally, defaults to p_name)
     @param render     render in a new interactive window (default = True)
+    @param plantType  define the plant type (basil or arabidopsis), arabidopsis model use some tricks to work
     @return a tuple of a vtkActor and the corresponding color bar vtkScalarBarActor
     """
     leafLines = pd.getPolylines(4)  # The plant is constitute of multiple lines, the parameter "4" allow to retrieve
@@ -38,6 +39,7 @@ def plot_plant(pd, p_name, win_title="", render=True, plantType="basil"):
     if plantType == "arabidopsis":
         rosetteLines = pd.getPolylines(3)  # If the arabidopsis is generated, we need the stem lines because one subType
         # of stem is a trick to create more leaves
+        organs = pd.getOrgans(3)  # Create a list of organs of the same size of rosetteLines, used to retrieve subType
 
     if isinstance(pd, pb.RootSystem):
         pd = segs_to_polydata(pd, 1.)
@@ -66,7 +68,7 @@ def plot_plant(pd, p_name, win_title="", render=True, plantType="basil"):
     appendFilter = vtk.vtkAppendPolyData()  # The append filter allows to unite multiple sets of polygonal data
     appendFilter.AddInputData(leaves)  # The leaves are added to the append filter
     if plantType == "arabidopsis":
-        rosette = create_rosette(rosetteLines)
+        rosette = create_rosette(rosetteLines, organs)
         appendFilter.AddInputData(rosette)
     appendFilter.AddInputData(tubeFilter.GetOutput())  # The stems and the roots are added to the append filter
     appendFilter.Update()
@@ -96,10 +98,13 @@ def plot_plant(pd, p_name, win_title="", render=True, plantType="basil"):
 
 
 def intersection(surfaces, ray):
+    # Surfaces is as VTKmodifiedBSPtree object
+    # Ray contains the coordinates of 2 points defining the line
+
     # Mainly based on "https://lorensen.github.io/VTKExamples/site/Python/GeometricObjects/PolygonIntersection/"
     # tutorial, adapted because ModifiedBSPTree is used instead of a set of polygons.
-    p1 = ray[0]
-    p2 = ray[1]
+    p1 = ray[0]  # The coordinates of the light source of the kinect
+    p2 = ray[1]  # The coordinates of the intersection between the ground and the ray
     tolerance = 0.001
     bestT = 2  # the best t parameter for the intersection, 1 is the worst possible value, 0 is the best one
     bestID = -300000
@@ -110,6 +115,10 @@ def intersection(surfaces, ray):
     pcoords = [0.0, 0.0, 0.0]
     subId = vtk.mutable(0)
     iD = surfaces.IntersectWithLine(p1, p2, tolerance, t, x, pcoords, subId)
+
+    # This part was initially there because "surfaces" parameter was a list of polygons (so a ray can intersect
+    # with several polygons and we need to find the nearest intersection with the light source)
+    # TODO refactor the code so it benefits more of the specification of modifiedBSPtree (see comment above)
     if iD == 1:
         atLeastOne = True
         if t < bestT:
@@ -121,8 +130,11 @@ def intersection(surfaces, ray):
 
 def get_rays(length, width, height, trueLength):
     # The function only return the intersection between the rays and the ground (xy plan)
-    # Because we state the camera is in position (0, 0, z), we have enough data to retrieve ray equation
-    # (though it is not needed, we only need 2 points of the ray for the VTK function)
+    # The lines are defined by 2 points
+    # The camera is set in the position (0, 0, z),
+    # it is not restrictive as we can move easily the position of the seed of the plant
+    # Truelength is the distance between two extreme pixels if they both hit the ground
+    # It would have been better to  use the open angle of the light source (it would have been more understandable)
     rays = []
     centerOfEverything = [0, 0, height]
     trueWidth = trueLength/length * width
@@ -141,12 +153,15 @@ def get_rays(length, width, height, trueLength):
 
 def camera_view(pd, height, resolution, trueLength, isPlotted, plantType="basil"):
     # Simulate the nadir camera view and retrieve the coordinates of the viewed points.
+    # Based on plot_plant (the plotting part is removed and the ray tracing part is added)
     nods = np.array([np.array(s) for s in pd.getNodes()])
     leafLines = pd.getPolylines(4)
 
     if plantType == "arabidopsis":
         rosetteLines = pd.getPolylines(3)  # If the arabidopsis is generated, we need the stem lines because one subType
         # of stem is a trick to create more leaves
+        organs = pd.getOrgans(3)  # Create a list of organs of the same size of rosetteLines, used to retrieve subType
+
 
     if isinstance(pd, pb.RootSystem):
         pd = segs_to_polydata(pd, 1.)
@@ -168,11 +183,11 @@ def camera_view(pd, height, resolution, trueLength, isPlotted, plantType="basil"
 
     # leaves = create_leaf(leafLines)
     leaves = create_leaves(leafLines)
-    appendFilter = vtk.vtkAppendPolyData()
+    appendFilter = vtk.vtkAppendPolyData()  # So we can merge the roots, the stems and the leaves together
     appendFilter.AddInputData(leaves)
     appendFilter.AddInputData(stemModel)
     if plantType == "arabidopsis":
-        rosette = create_rosette(rosetteLines)
+        rosette = create_rosette(rosetteLines, organs)
         appendFilter.AddInputData(rosette)
 
     appendFilter.Update()
@@ -193,14 +208,13 @@ def camera_view(pd, height, resolution, trueLength, isPlotted, plantType="basil"
             position.append(bestX)
 
     rays = np.array(rays)
-    twos = np.ones((len(rays), 1))
-    twos /= 2
     position.append([0, 0, height])
     position = np.array(position)
     nods = np.append(nods, np.zeros((len(nods), 1)), axis=1)
     position = np.append(position, np.ones((len(position), 1)), axis=1)
     final = np.append(position, nods, axis=0)
 
+    # Just a part of the code used for checking result (probably useless now)
     if isPlotted:
         x = position[:, 0]
         y = position[:, 1]
@@ -232,20 +246,22 @@ def camera_view(pd, height, resolution, trueLength, isPlotted, plantType="basil"
 
 def create_leaves(leafLines):
     appendFilter = vtk.vtkAppendPolyData()
-    for i in range(len(leafLines)):
+    for i in range(len(leafLines)):  # For each leaf
         lengthtotx = -(leafLines[i][0].x - leafLines[i][-1].x)
         lengthtoty = -(leafLines[i][0].y - leafLines[i][-1].y)
         lengthtotz = -(leafLines[i][0].z - leafLines[i][-1].z)
         lengthtot = lengthtotx ** 2 + lengthtoty ** 2 + lengthtotz ** 2
-        lengthtot = math.sqrt(lengthtot)
+
+        # The distance between the first node of the leaf and the last node of the leaf
+        lengthtot = math.sqrt(lengthtot)  # Norm in numpy could have done the job
         x = 0
-        for j in range(len(leafLines[i])-1):
-            if j >= len(leafLines[i])*0.2:
+        for j in range(len(leafLines[i])-1):  # For each segment line composing the leaf
+            if j >= len(leafLines[i])*0.2:  # Just to have a petiole
                 lengthx = -(leafLines[i][j].x - leafLines[i][j+1].x)
                 lengthy = -(leafLines[i][j].y - leafLines[i][j+1].y)
                 lengthz = -(leafLines[i][j].z - leafLines[i][j+1].z)
                 length = lengthx ** 2 + lengthy ** 2 + lengthz ** 2
-                length = math.sqrt(length)
+                length = math.sqrt(length)  # The length of the segment
                 # # Old implementation with rectangle leaves
                 # p0 = [-lengthtot / 4, 0, 0]
                 # p1 = [-lengthtot / 4, length, 0]
@@ -257,6 +273,8 @@ def create_leaves(leafLines):
                 # If we want something else than rectangle, we define a function f(x) = x**2
                 y2 = (-(x2 + 1/(nb_segments / 2 - 0.5))**2 + 1) * lengthtot * 0.2  # there we take x2 + dx
                 x += 1
+
+                # We define a symmetric trapezoid at the origin
                 p0 = [-y1, 0, 0]
                 p1 = [-y2, length, 0]
                 p2 = [y2, length, 0]
@@ -296,6 +314,7 @@ def create_leaves(leafLines):
                 if lengthx < 0:
                     isOpposate = 180  # atan is set between -pi/2 and pi/2 so I add 180° if the angle is not in this interval
 
+                # Moving the polygon to the segment line of the leaf
                 transfo.Translate([leafLines[i][j].x, leafLines[i][j].y, leafLines[i][j].z])
                 transfo.RotateWXYZ(theta, [1, 0, 0])
                 transfo.RotateWXYZ(phi - 90 + isOpposate,
@@ -317,11 +336,13 @@ def create_leaves(leafLines):
     return leaves
 
 
-def create_rosette(stemLines):
+def create_rosette(stemLines, organs):
+    # Same behavior as create_leaves, this function is used because of the trick for the rosette
     appendFilter = vtk.vtkAppendPolyData()
     counter = 0
     for i in range(len(stemLines)):
-        if stemLines[i][0].z == -3 and np.abs(stemLines[i][-1].x) + np.abs(stemLines[i][-1].y) > 0.1:
+        # if stemLines[i][0].z == -3 and np.abs(stemLines[i][-1].x) + np.abs(stemLines[i][-1].y) > 0.1:
+        if organs[i].getParameter('subType') == 4:
             # Only keeps the tricky stem that are the rosette leaves.
             lengthtotx = -(stemLines[i][0].x - stemLines[i][-1].x)
             lengthtoty = -(stemLines[i][0].y - stemLines[i][-1].y)
