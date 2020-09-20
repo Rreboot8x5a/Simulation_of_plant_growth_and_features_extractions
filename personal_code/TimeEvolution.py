@@ -63,6 +63,10 @@ def plot_leaf_evolution(plantAllTime, time, characteristic, leafNumber):
 
 
 def evolution(time):
+    """
+    This function will read several txt files, the files with the ray tracing data in the BasilData2 folder and the
+    Real_parameters_of_basil2.txt containing the data extract from the plant object of CPlantBox
+    """
     # This function is especially made for the basil plant, the difficulty about this part was retrieving
     # a specific leaf between 2 time steps. To understand what was done, please refer the word files sent by email
     plantAllTime = {}
@@ -83,28 +87,18 @@ def evolution(time):
 
         if len(leaves) != 0:
 
-            if dt >= 38:
-                print('debug stop')
-
             # TODO : implement the main axes retrieving at the first time steps (actually the main axes are defined
             #  because I checked the final plot and compute manually the axes before launching this function)
+            # Main axes for BasilData
             mainAxis1 = [-0.46, -2.95, 0]
             mainAxis2 = [2.95, -0.46, 0]
 
-            # Main axes for basil 2
+            # Main axes for BasilData2
             mainAxis1 = [0.888, 2.6385, 0]
             mainAxis2 = [2.6385, -0.888, 0]
-            # if dt >= 38:
-            #     coord = get_numpy_array(leaves)
-            #     plot_data(coord, coord[:, 3])
+
             leaves = separate_united_leaves(leaves)
-            # if dt >= 38:
-            #     coord = get_numpy_array(leaves)
-            #     plot_data(coord, coord[:, 3])
             leaves, centerLeaves = unite_cluster(leaves, mainAxis1, mainAxis2)
-            # if dt >= 38:
-            #         coord = get_numpy_array(leaves)
-            #         plot_data(coord, coord[:, 3])
 
             if firstTry:
                 for i in range(len(leaves)):
