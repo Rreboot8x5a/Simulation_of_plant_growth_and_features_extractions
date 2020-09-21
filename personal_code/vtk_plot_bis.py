@@ -1,5 +1,5 @@
 """
-Copyright 2020 Quaranta Roberto
+Copyright 2020 Rreboot8x5a
 
 This file is part of Simulation_of_plant_growth_and_features_extractions.
 
