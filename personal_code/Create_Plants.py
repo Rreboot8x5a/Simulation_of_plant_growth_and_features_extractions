@@ -1,4 +1,22 @@
 """
+Copyright 2020 Quaranta Roberto
+
+This file is part of Simulation_of_plant_growth_and_features_extractions.
+
+Simulation_of_plant_growth_and_features_extractions is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Simulation_of_plant_growth_and_features_extractions is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Simulation_of_plant_growth_and_features_extractions.  If not, see <https://www.gnu.org/licenses/>.
+"""
+"""
 The purpose of this script is to create the plant object before the simulation
 As the xml examples are not well writen, creating plant characteristics by changing attribute of a default plant
 is easier
